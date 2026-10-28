@@ -2433,6 +2433,12 @@ protected:
       m_program_name = arguments.front();
     }
     auto end = std::end(arguments);
+    // Options never take their values from after a "--" separator
+    const auto separator_it =
+        separator_index.has_value()
+            ? std::next(std::begin(arguments),
+                        static_cast<std::ptrdiff_t>(*separator_index))
+            : std::end(arguments);
     auto positional_argument_it = std::begin(m_positional_arguments);
     for (auto it = arguments.empty() ? std::begin(arguments)
                                      : std::next(std::begin(arguments));
@@ -2522,7 +2528,8 @@ protected:
       auto arg_map_it = m_argument_map.find(current_argument);
       if (arg_map_it != m_argument_map.end()) {
         auto argument = arg_map_it->second;
-        it = argument->consume(std::next(it), end, arg_map_it->first);
+        it = argument->consume(std::next(it), (std::min)(end, separator_it),
+                                arg_map_it->first);
       } else if (const auto &compound_arg = current_argument;
                  compound_arg.size() > 1 &&
                  is_valid_prefix_char(compound_arg[0]) &&
@@ -2533,7 +2540,8 @@ protected:
           auto arg_map_it2 = m_argument_map.find(hypothetical_arg);
           if (arg_map_it2 != m_argument_map.end()) {
             auto argument = arg_map_it2->second;
-            it = argument->consume(it, end, arg_map_it2->first);
+            it = argument->consume(it, (std::min)(end, separator_it),
+                                  arg_map_it2->first);
           } else {
             throw std::runtime_error("Unknown argument: " + current_argument);
           }
@@ -2558,6 +2566,12 @@ protected:
       m_program_name = arguments.front();
     }
     auto end = std::end(arguments);
+    // Options never take their values from after a "--" separator
+    const auto separator_it =
+        separator_index.has_value()
+            ? std::next(std::begin(arguments),
+                        static_cast<std::ptrdiff_t>(*separator_index))
+            : std::end(arguments);
     auto positional_argument_it = std::begin(m_positional_arguments);
     for (auto it = arguments.empty() ? std::begin(arguments)
                                      : std::next(std::begin(arguments));
@@ -2606,7 +2620,8 @@ protected:
       auto arg_map_it = m_argument_map.find(current_argument);
       if (arg_map_it != m_argument_map.end()) {
         auto argument = arg_map_it->second;
-        it = argument->consume(std::next(it), end, arg_map_it->first);
+        it = argument->consume(std::next(it), (std::min)(end, separator_it),
+                                arg_map_it->first);
       } else if (const auto &compound_arg = current_argument;
                  compound_arg.size() > 1 &&
                  is_valid_prefix_char(compound_arg[0]) &&
@@ -2617,7 +2632,8 @@ protected:
           auto arg_map_it2 = m_argument_map.find(hypothetical_arg);
           if (arg_map_it2 != m_argument_map.end()) {
             auto argument = arg_map_it2->second;
-            it = argument->consume(it, end, arg_map_it2->first);
+            it = argument->consume(it, (std::min)(end, separator_it),
+                                  arg_map_it2->first);
           } else {
             unknown_arguments.push_back(current_argument);
             break;
