@@ -2348,8 +2348,26 @@ protected:
   std::pair<std::vector<std::string>, std::optional<std::size_t>>
   preprocess_arguments(const std::vector<std::string> &raw_arguments) const {
     std::vector<std::string> arguments{};
+    // Detect a lone "--" separator: everything after it is forced to be
+    // parsed as positional, mirroring Python's argparse behaviour. Only
+    // applies when '-' is a legal prefix char and "--" isn't itself the
+    // name of a defined argument. It has to be found before any "--opt=value"
+    // splitting, so that a value of "--" isn't taken for it and nothing after
+    // it gets split.
+    std::optional<std::size_t> separator_index;
+    const bool separator_allowed =
+        m_prefix_chars.find('-') != std::string::npos &&
+        m_argument_map.find("--") == m_argument_map.end();
     for (const auto &arg : raw_arguments) {
-      
+      if (separator_index.has_value()) {
+        arguments.push_back(arg);
+        continue;
+      }
+      if (separator_allowed && arg == "--") {
+        separator_index = arguments.size();
+        continue;
+      }
+
       const auto argument_starts_with_prefix_chars =
           [this](const std::string &a) -> bool {
         if (!a.empty()) {
@@ -2401,21 +2419,6 @@ protected:
       }
       // If we've fallen through to here, then it's a standard argument
       arguments.push_back(arg);
-    }
-
-    // Detect a lone "--" separator: everything after it is forced to be
-    // parsed as positional, mirroring Python's argparse behaviour. Only
-    // applies when '-' is a legal prefix char and "--" isn't itself the
-    // name of a defined argument.
-    std::optional<std::size_t> separator_index;
-    if (m_prefix_chars.find('-') != std::string::npos &&
-        m_argument_map.find("--") == m_argument_map.end()) {
-      auto separator_it = std::find(arguments.begin(), arguments.end(), "--");
-      if (separator_it != arguments.end()) {
-        separator_index = static_cast<std::size_t>(
-            std::distance(arguments.begin(), separator_it));
-        arguments.erase(separator_it);
-      }
     }
 
     return {arguments, separator_index};
